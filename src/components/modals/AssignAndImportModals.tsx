@@ -145,7 +145,14 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
 
   if (!isOpen) return null;
 
-  const sampleCsv = `Asset Name,Category,Initial Location Code,Brand,Model,Serial Number,Condition,Acquisition Cost
+  const sampleCsv =
+    environment === 'household'
+      ? `Asset Name,Category,Initial Location Code,Brand,Model,Serial Number,Condition,Acquisition Cost
+Sony Bravia 65" OLED TV,Electronics,H-LIV,Sony,XR-65A80L,SN-SNY-7721,Excellent,1800
+Espresso Coffee Machine,Kitchen appliances,H-KIT,Breville,Barista Touch,SN-BRV-4421,Good,850
+Ergonomic Mesh Study Chair,Furniture & Fixtures,H-OFF,Herman Miller,Aeron,SN-HM-2910,Excellent,1250
+Cordless Smart Vacuum Cleaner,Home & Living Essentials,H-UTL,Dyson,V15 Detect,SN-DYS-9912,Excellent,750`
+      : `Asset Name,Category,Initial Location Code,Brand,Model,Serial Number,Condition,Acquisition Cost
 Lenovo ThinkPad E14,Electronics,ICT-301,Lenovo,ThinkPad E14,SN-LNV-00912,Excellent,950
 Bacteriological Incubator,Laboratory Equipment,SCI-201,Thermo Scientific,Heratherm,SN-THM-8812,Good,3400
 Executive Mesh Task Chair,Furniture & Fixtures,ADM-101,Steelcase,Gesture,SN-STC-4412,Excellent,720

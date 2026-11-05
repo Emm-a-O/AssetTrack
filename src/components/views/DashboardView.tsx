@@ -15,6 +15,7 @@ import {
   FolderTree,
   Tag,
   Layers,
+  User,
 } from 'lucide-react';
 import { useAssetTrack } from '../../context/AssetTrackContext';
 
@@ -54,9 +55,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const damagedAssets = scopedAssets.filter((a) => !a.isArchived && (a.condition === 'Damaged' || a.condition === 'Unserviceable'));
   const archivedAssets = scopedAssets.filter((a) => a.isArchived);
 
-  const pendingMovements = movements.filter((m) => m.status === 'Pending approval');
-  const approvedReadyMovements = movements.filter((m) => m.status === 'Approved');
-  const completedMovements = movements.filter((m) => m.status === 'Completed');
+  const scopedMovements = movements.filter((m) => m.environment === environment);
+  const pendingMovements = scopedMovements.filter((m) => m.status === 'Pending approval');
+  const approvedReadyMovements = scopedMovements.filter((m) => m.status === 'Approved');
+  const completedMovements = scopedMovements.filter((m) => m.status === 'Completed');
 
   // Distribution by category
   const categoryCounts = categories.map((cat) => {
@@ -73,7 +75,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     })
     .sort((a, b) => b.count - a.count);
 
-  const recentTransactions = movements.slice(0, 5);
+  const recentTransactions = scopedMovements.slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -257,7 +259,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               onClick={() => onSelectTab('movements')}
               className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1"
             >
-              <span>View All ({movements.length})</span>
+              <span>View All ({scopedMovements.length})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -285,13 +287,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           : 'bg-slate-100 text-slate-700'
                       }`}
                     >
-                      {mov.status}
+                      {environment === 'household' ? 'Moved Freely' : mov.status}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                  <div className="flex items-center gap-1.5 text-xs text-slate-600 flex-wrap">
                     <span className="text-slate-500">{getLocationName(mov.previousLocationId)}</span>
                     <ArrowRight className="w-3 h-3 text-slate-400" />
                     <span className="font-semibold text-slate-900">{getLocationName(mov.newLocationId)}</span>
+                    <span className="text-slate-400">•</span>
+                    <span className="inline-flex items-center gap-1 font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded text-[11px] border border-indigo-100">
+                      <User className="w-3 h-3 text-indigo-600" />
+                      <span>Moved by: {mov.requestedByName}</span>
+                    </span>
                     <span className="text-slate-400">•</span>
                     <span className="text-[11px] text-slate-500">{mov.movementReason}</span>
                   </div>

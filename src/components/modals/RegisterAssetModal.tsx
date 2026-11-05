@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Boxes,
@@ -58,6 +58,18 @@ export const RegisterAssetModal: React.FC<RegisterAssetModalProps> = ({
   const [imageUrl, setImageUrl] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (categories.length > 0 && !categories.some((c) => c.name === category)) {
+        setCategory(categories[0].name);
+      }
+      const activeLocs = locations.filter((l) => l.isActive && l.environment === environment);
+      if (activeLocs.length > 0 && !activeLocs.some((l) => l.id === initialLocationId)) {
+        setInitialLocationId(activeLocs[0].id);
+      }
+    }
+  }, [isOpen, environment, categories, locations]);
 
   if (!isOpen) return null;
 
@@ -192,7 +204,11 @@ export const RegisterAssetModal: React.FC<RegisterAssetModalProps> = ({
               </label>
               <input
                 type="text"
-                placeholder="e.g. Smart TV Display, Cold Storage"
+                placeholder={
+                  environment === 'household'
+                    ? 'e.g. Smart TV, Espresso Machine, Living Room Recliner'
+                    : 'e.g. Workstation Display, Network Switch, Rack Server'
+                }
                 value={subcategory}
                 onChange={(e) => setSubcategory(e.target.value)}
                 className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
@@ -208,7 +224,11 @@ export const RegisterAssetModal: React.FC<RegisterAssetModalProps> = ({
               </label>
               <input
                 type="text"
-                placeholder="e.g. Samsung, Dell, Optika"
+                placeholder={
+                  environment === 'household'
+                    ? 'e.g. Sony, LG, Dyson, Breville'
+                    : 'e.g. Samsung, Dell, Lenovo, HP'
+                }
                 value={brand}
                 onChange={(e) => setBrand(e.target.value)}
                 className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500"

@@ -22,11 +22,12 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
   const { environment, movements, maintenanceRecords, missingReports, assets } = useAssetTrack();
 
-  const pendingApprovalsCount = movements.filter((m) => m.status === 'Pending approval').length;
+  const scopedAssetIds = assets.filter((a) => a.environment === environment).map((a) => a.id);
+  const pendingApprovalsCount = movements.filter((m) => m.environment === environment && m.status === 'Pending approval').length;
   const activeMaintenanceCount = maintenanceRecords.filter(
-    (m) => m.status === 'In Progress' || m.status === 'Scheduled'
+    (m) => scopedAssetIds.includes(m.assetId) && (m.status === 'In Progress' || m.status === 'Scheduled')
   ).length;
-  const activeMissingCount = missingReports.filter((m) => !m.isRecovered).length;
+  const activeMissingCount = missingReports.filter((m) => scopedAssetIds.includes(m.assetId) && !m.isRecovered).length;
 
   const navItems = [
     {

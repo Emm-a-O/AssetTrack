@@ -27,6 +27,7 @@ export const AllocationView: React.FC<AllocationViewProps> = ({
     users,
     departments,
     currentUser,
+    environment,
     acknowledgeAssignment,
     getLocationName,
     getDepartmentName,
@@ -34,7 +35,10 @@ export const AllocationView: React.FC<AllocationViewProps> = ({
 
   const [activeTab, setActiveTab] = useState<'roster' | 'history'>('roster');
 
-  const activeAssignments = assignments.filter((a) => a.status === 'Active');
+  const scopedAssets = assets.filter((a) => !a.isArchived && a.environment === environment);
+  const scopedAssetIds = scopedAssets.map((a) => a.id);
+  const scopedAssignments = assignments.filter((a) => scopedAssetIds.includes(a.assetId));
+  const activeAssignments = scopedAssignments.filter((a) => a.status === 'Active');
 
   return (
     <div className="space-y-5">
@@ -85,7 +89,7 @@ export const AllocationView: React.FC<AllocationViewProps> = ({
         >
           <span>All Allocation Records &amp; Transfers</span>
           <span className="px-2 py-0.5 text-[10px] rounded-full bg-slate-100 text-slate-700">
-            {assignments.length}
+            {scopedAssignments.length}
           </span>
         </button>
       </div>
@@ -94,7 +98,7 @@ export const AllocationView: React.FC<AllocationViewProps> = ({
         /* Staff Cards Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {users.map((user) => {
-            const userAssets = assets.filter((a) => !a.isArchived && a.responsiblePersonId === user.id);
+            const userAssets = scopedAssets.filter((a) => a.responsiblePersonId === user.id);
 
             return (
               <div
@@ -192,7 +196,7 @@ export const AllocationView: React.FC<AllocationViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {assignments.map((asn) => (
+                {scopedAssignments.map((asn) => (
                   <tr key={asn.id} className="hover:bg-slate-50">
                     <td className="py-3 px-4 font-mono font-bold text-indigo-600 whitespace-nowrap">
                       {asn.id}

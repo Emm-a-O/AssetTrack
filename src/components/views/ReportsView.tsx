@@ -32,9 +32,12 @@ export const ReportsView: React.FC = () => {
   const [reportType, setReportType] = useState<'inventory' | 'movements' | 'locations' | 'maintenance'>('inventory');
 
   const scopedAssets = assets.filter((a) => !a.isArchived && a.environment === environment);
+  const scopedAssetIds = scopedAssets.map((a) => a.id);
+  const scopedMovements = movements.filter((m) => m.environment === environment);
+  const scopedMaintenance = maintenanceRecords.filter((m) => scopedAssetIds.includes(m.assetId));
 
   const totalValue = scopedAssets.reduce((sum, a) => sum + (a.acquisitionCost || 0), 0);
-  const totalMaintCost = maintenanceRecords.reduce((sum, m) => sum + (m.repairCost || 0), 0);
+  const totalMaintCost = scopedMaintenance.reduce((sum, m) => sum + (m.repairCost || 0), 0);
 
   const handlePrint = () => {
     window.print();
@@ -59,8 +62,19 @@ export const ReportsView: React.FC = () => {
         `"${a.acquisitionCost || 0}"`,
       ]);
     } else if (reportType === 'movements') {
-      headers = ['Tx ID', 'Asset ID', 'Asset Name', 'From Location', 'To Location', 'Date', 'Time', 'Reason', 'Requested By', 'Status'];
-      rows = movements.map((m) => [
+      headers = [
+        'Tx ID',
+        'Asset ID',
+        'Asset Name',
+        'From Location',
+        'To Location',
+        'Date',
+        'Time',
+        'Reason',
+        environment === 'household' ? 'Moved By (Individual)' : 'Requested By',
+        'Status',
+      ];
+      rows = scopedMovements.map((m) => [
         `"${m.id}"`,
         `"${m.assetId}"`,
         `"${m.assetName}"`,
@@ -70,7 +84,7 @@ export const ReportsView: React.FC = () => {
         `"${m.movementTime}"`,
         `"${m.movementReason}"`,
         `"${m.requestedByName}"`,
-        `"${m.status}"`,
+        `"${environment === 'household' ? 'Moved Freely' : m.status}"`,
       ]);
     } else if (reportType === 'locations') {
       headers = ['Location Code', 'Location Name', 'Level', 'Asset Count'];
@@ -82,7 +96,7 @@ export const ReportsView: React.FC = () => {
       ]);
     } else {
       headers = ['Maintenance ID', 'Asset ID', 'Asset Name', 'Type', 'Reported Date', 'Technician', 'Status', 'Cost ($)'];
-      rows = maintenanceRecords.map((m) => [
+      rows = scopedMaintenance.map((m) => [
         `"${m.id}"`,
         `"${m.assetId}"`,
         `"${m.assetName}"`,
@@ -162,7 +176,7 @@ export const ReportsView: React.FC = () => {
         >
           <FileSpreadsheet className={`w-4 h-4 mb-2 ${reportType === 'movements' ? 'text-blue-600' : 'text-slate-400'}`} />
           <div className="text-xs font-bold text-slate-900">Movement Audit Trail</div>
-          <div className="text-[10px] text-slate-500 mt-0.5">{movements.length} total transfers</div>
+          <div className="text-[10px] text-slate-500 mt-0.5">{scopedMovements.length} total transfers</div>
         </button>
 
         <button
@@ -265,11 +279,12 @@ export const ReportsView: React.FC = () => {
                   <th className="py-2.5 px-3">From Location</th>
                   <th className="py-2.5 px-3">To Location</th>
                   <th className="py-2.5 px-3">Reason</th>
+                  <th className="py-2.5 px-3">{environment === 'household' ? 'Moved By' : 'Requested By'}</th>
                   <th className="py-2.5 px-3">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {movements.map((m) => (
+                {scopedMovements.map((m) => (
                   <tr key={m.id} className="hover:bg-slate-50">
                     <td className="py-2 px-3 font-mono font-bold text-blue-600">{m.id}</td>
                     <td className="py-2 px-3 text-slate-600">{m.movementDate} {m.movementTime}</td>
@@ -277,7 +292,10 @@ export const ReportsView: React.FC = () => {
                     <td className="py-2 px-3 text-slate-600">{getLocationName(m.previousLocationId)}</td>
                     <td className="py-2 px-3 font-semibold text-slate-900">{getLocationName(m.newLocationId)}</td>
                     <td className="py-2 px-3 text-slate-600">{m.movementReason}</td>
-                    <td className="py-2 px-3 font-bold text-slate-800">{m.status}</td>
+                    <td className="py-2 px-3 font-medium text-slate-800">{m.requestedByName}</td>
+                    <td className="py-2 px-3 font-bold text-slate-800">
+                      {environment === 'household' ? 'Moved Freely' : m.status}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -301,7 +319,7 @@ export const ReportsView: React.FC = () => {
                     <td className="py-2 px-3 font-medium text-slate-900">{l.name}</td>
                     <td className="py-2 px-3 text-slate-600">{l.level}</td>
                     <td className="py-2 px-3 font-bold text-blue-700">
-                      {assets.filter(a => !a.isArchived && a.currentLocationId === l.id).length} items
+                      {scopedAssets.filter(a => a.currentLocationId === l.id).length} items
                     </td>
                   </tr>
                 ))}
@@ -323,7 +341,7 @@ export const ReportsView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {maintenanceRecords.map((m) => (
+                {scopedMaintenance.map((m) => (
                   <tr key={m.id} className="hover:bg-slate-50">
                     <td className="py-2 px-3 font-mono font-bold text-blue-600">{m.id}</td>
                     <td className="py-2 px-3 font-medium text-slate-900">{m.assetName}</td>

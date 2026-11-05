@@ -25,13 +25,16 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
   onOpenCompleteModal,
   onSelectAsset,
 }) => {
-  const { maintenanceRecords, assets, getLocationName } = useAssetTrack();
+  const { maintenanceRecords, assets, getLocationName, environment } = useAssetTrack();
   const [subTab, setSubTab] = useState<'active' | 'completed'>('active');
 
+  const scopedAssetIds = assets.filter((a) => a.environment === environment).map((a) => a.id);
   const activeTickets = maintenanceRecords.filter(
-    (m) => m.status === 'In Progress' || m.status === 'Scheduled' || m.status === 'Waiting for Parts'
+    (m) => scopedAssetIds.includes(m.assetId) && (m.status === 'In Progress' || m.status === 'Scheduled' || m.status === 'Waiting for Parts')
   );
-  const completedTickets = maintenanceRecords.filter((m) => m.status === 'Completed');
+  const completedTickets = maintenanceRecords.filter(
+    (m) => scopedAssetIds.includes(m.assetId) && m.status === 'Completed'
+  );
 
   const currentList = subTab === 'active' ? activeTickets : completedTickets;
 

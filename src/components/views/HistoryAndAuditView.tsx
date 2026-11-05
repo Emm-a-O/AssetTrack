@@ -19,11 +19,13 @@ interface HistoryAndAuditViewProps {
 }
 
 export const HistoryAndAuditView: React.FC<HistoryAndAuditViewProps> = ({ onSelectAsset }) => {
-  const { movements, auditLogs, getLocationName } = useAssetTrack();
+  const { movements, auditLogs, getLocationName, environment } = useAssetTrack();
   const [activeTab, setActiveTab] = useState<'movements' | 'audit'>('movements');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredMovements = movements.filter((m) => {
+  const scopedMovements = movements.filter((m) => m.environment === environment);
+
+  const filteredMovements = scopedMovements.filter((m) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -85,7 +87,7 @@ export const HistoryAndAuditView: React.FC<HistoryAndAuditViewProps> = ({ onSele
         >
           <span>1. Physical Movement Log</span>
           <span className="px-2 py-0.5 text-[10px] rounded-full bg-slate-100 text-slate-700">
-            {movements.length}
+            {scopedMovements.length}
           </span>
         </button>
 
@@ -125,7 +127,9 @@ export const HistoryAndAuditView: React.FC<HistoryAndAuditViewProps> = ({ onSele
                   <th className="py-3 px-4">From Location</th>
                   <th className="py-3 px-4">To Location</th>
                   <th className="py-3 px-4">Reason</th>
-                  <th className="py-3 px-4">Requested By</th>
+                  <th className="py-3 px-4">
+                    {environment === 'household' ? 'Moved By (Individual)' : 'Requested By'}
+                  </th>
                   <th className="py-3 px-4">Status</th>
                 </tr>
               </thead>
@@ -158,7 +162,10 @@ export const HistoryAndAuditView: React.FC<HistoryAndAuditViewProps> = ({ onSele
                       {mov.movementReason}
                     </td>
                     <td className="py-3 px-4 text-slate-700 whitespace-nowrap">
-                      {mov.requestedByName}
+                      <span className="font-semibold text-indigo-950 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 flex items-center gap-1 w-fit text-xs">
+                        <User className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>{mov.requestedByName}</span>
+                      </span>
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap">
                       <span
@@ -174,7 +181,7 @@ export const HistoryAndAuditView: React.FC<HistoryAndAuditViewProps> = ({ onSele
                             : 'bg-slate-100 text-slate-700'
                         }`}
                       >
-                        {mov.status}
+                        {environment === 'household' ? 'Moved Freely' : mov.status}
                       </span>
                     </td>
                   </tr>

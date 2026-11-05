@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import {
   Asset,
   Location,
@@ -101,7 +101,7 @@ interface AssetTrackContextType {
   generateNextAssetId: (env: EnvironmentMode) => string;
 }
 
-const STORAGE_KEY = 'assettrack_state_v1';
+const STORAGE_KEY = 'assettrack_state_v3';
 
 const AssetTrackContext = createContext<AssetTrackContextType | undefined>(undefined);
 
@@ -135,7 +135,11 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return INITIAL_DEPARTMENTS;
   });
 
-  const [categories] = useState<AssetCategory[]>(INITIAL_CATEGORIES);
+  const [allCategories] = useState<AssetCategory[]>(INITIAL_CATEGORIES);
+
+  const categories = useMemo(() => {
+    return allCategories.filter((c) => c.environments.includes(environment));
+  }, [allCategories, environment]);
 
   const [locations, setLocations] = useState<Location[]>(() => {
     try {
@@ -468,14 +472,83 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       };
     }
 
-    // Automatic approval logic:
-    // If Household environment OR user is Asset Manager/Org Admin, it can be approved automatically.
-    // If Staff member or standard user in Organisation mode, status is 'Pending approval'.
+    const isHousehold = environment === 'household' || asset.environment === 'household';
+
+    // HOUSEHOLD PLATFORM RULE:
+    // When in the household platform, items do not require permission to be moved.
+    // Individuals logged in move items freely.
+    // The system automatically records the individual who moves the item alongside the item.
+    if (isHousehold) {
+      const movementId = `MOV-H-${String(movements.length + 1).padStart(3, '0')}`;
+      const nowIso = new Date().toISOString();
+
+      const newMovement: AssetMovement = {
+        id: movementId,
+        assetId,
+        assetName: `${asset.name}${asset.brand ? ` (${asset.brand})` : ''}`,
+        previousLocationId: asset.currentLocationId, // Captured automatically
+        newLocationId,
+        movementDate,
+        movementTime,
+        recordedAt: nowIso,
+        movementReason: movementReason || 'Internal transfer',
+        requestedById: currentUser.id,
+        requestedByName: currentUser.name, // The logged-in person who moved the item
+        approvedById: currentUser.id,
+        approvedByName: currentUser.name,
+        approvalDate: nowIso,
+        approvalRemarks: 'Household self-service transfer — no permission required.',
+        completedById: currentUser.id,
+        completedByName: currentUser.name,
+        completedAt: nowIso,
+        actualMovementDate: movementDate,
+        actualMovementTime: movementTime,
+        remarks: remarks || `Moved freely by ${currentUser.name} to ${targetLoc.name}`,
+        status: 'Completed',
+        environment: 'household',
+      };
+
+      // Instantly update asset's live physical location & timestamp
+      setAssets((prev) =>
+        prev.map((a) =>
+          a.id === assetId
+            ? {
+                ...a,
+                currentLocationId: newLocationId,
+                lastConfirmedMovementDate: movementDate,
+                lastConfirmedMovementTime: movementTime,
+              }
+            : a
+        )
+      );
+
+      setMovements((prev) => [newMovement, ...prev]);
+
+      logAudit(
+        'Item Relocated (Household)',
+        'Movement',
+        movementId,
+        `${currentUser.name} moved ${asset.id} (${asset.name}) from ${getLocationName(asset.currentLocationId)} to ${getLocationName(newLocationId)}. Logged automatically.`
+      );
+
+      createNotification(
+        'Household Item Moved',
+        `${currentUser.name} moved ${asset.name} to ${getLocationName(newLocationId)}.`,
+        'completed',
+        'movements',
+        asset.id,
+        movementId
+      );
+
+      return { success: true, movement: newMovement };
+    }
+
+    // ORGANISATION WORKFLOW:
+    // Staff members require approval; Asset Managers / Admins can directly authorize
     const isManagerOrAdmin =
       currentUser.role === 'Asset Manager' ||
       currentUser.role === 'Organisation Administrator' ||
-      currentUser.role === 'Platform Administrator' ||
-      environment === 'household';
+      currentUser.role === 'Platform Administrator';
 
     const requiresApproval = requireApprovalDirectly !== undefined ? requireApprovalDirectly : !isManagerOrAdmin;
 

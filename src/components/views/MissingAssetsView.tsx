@@ -23,11 +23,12 @@ export const MissingAssetsView: React.FC<MissingAssetsViewProps> = ({
   onOpenRecoverModal,
   onSelectAsset,
 }) => {
-  const { missingReports, assets, getLocationName } = useAssetTrack();
+  const { missingReports, assets, getLocationName, environment } = useAssetTrack();
   const [activeTab, setActiveTab] = useState<'active' | 'recovered'>('active');
 
-  const activeReports = missingReports.filter((r) => !r.isRecovered);
-  const recoveredReports = missingReports.filter((r) => r.isRecovered);
+  const scopedAssetIds = assets.filter((a) => a.environment === environment).map((a) => a.id);
+  const activeReports = missingReports.filter((r) => scopedAssetIds.includes(r.assetId) && !r.isRecovered);
+  const recoveredReports = missingReports.filter((r) => scopedAssetIds.includes(r.assetId) && r.isRecovered);
 
   const currentList = activeTab === 'active' ? activeReports : recoveredReports;
 

@@ -143,19 +143,21 @@ export const StructureView: React.FC = () => {
               : 'border-transparent hover:text-slate-900'
           }`}
         >
-          <span>Hierarchical Locations ({currentLocations.length})</span>
+          <span>{environment === 'household' ? 'Household Rooms & Areas' : 'Hierarchical Locations'} ({currentLocations.length})</span>
         </button>
 
-        <button
-          onClick={() => setActiveTab('departments')}
-          className={`py-3 border-b-2 flex items-center gap-2 transition-colors ${
-            activeTab === 'departments'
-              ? 'border-blue-600 text-blue-600 font-bold'
-              : 'border-transparent hover:text-slate-900'
-          }`}
-        >
-          <span>Departments ({departments.length})</span>
-        </button>
+        {environment === 'organisation' && (
+          <button
+            onClick={() => setActiveTab('departments')}
+            className={`py-3 border-b-2 flex items-center gap-2 transition-colors ${
+              activeTab === 'departments'
+                ? 'border-blue-600 text-blue-600 font-bold'
+                : 'border-transparent hover:text-slate-900'
+            }`}
+          >
+            <span>Departments ({departments.length})</span>
+          </button>
+        )}
       </div>
 
       {/* Compliance Rule 10 Note */}
@@ -286,7 +288,11 @@ export const StructureView: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Biology Laboratory or Server Room B"
+                  placeholder={
+                    environment === 'household'
+                      ? 'e.g. Master Bedroom, Living Room, or Guest Suite'
+                      : 'e.g. Science Laboratory or Server Room B'
+                  }
                   value={locName}
                   onChange={(e) => setLocName(e.target.value)}
                   className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500"
@@ -301,7 +307,7 @@ export const StructureView: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. SCI-202"
+                    placeholder={environment === 'household' ? 'e.g. H-MBR-02' : 'e.g. SCI-202'}
                     value={locCode}
                     onChange={(e) => setLocCode(e.target.value)}
                     className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 font-mono text-xs uppercase"
@@ -316,11 +322,22 @@ export const StructureView: React.FC = () => {
                     onChange={(e) => setLocLevel(e.target.value as any)}
                     className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="Building">Building / Block</option>
-                    <option value="Floor">Floor / Wing</option>
-                    <option value="Room">Room / Office</option>
-                    <option value="Laboratory">Laboratory</option>
-                    <option value="Zone">Zone / Yard</option>
+                    {environment === 'household' ? (
+                      <>
+                        <option value="Building">Main Residence / Property</option>
+                        <option value="Floor">Floor / Story</option>
+                        <option value="Room">Room / Area</option>
+                        <option value="Zone">Outdoor / Garden / Patio</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="Building">Building / Block</option>
+                        <option value="Floor">Floor / Wing</option>
+                        <option value="Room">Room / Office</option>
+                        <option value="Laboratory">Laboratory</option>
+                        <option value="Zone">Zone / Yard</option>
+                      </>
+                    )}
                   </select>
                 </div>
               </div>

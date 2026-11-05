@@ -75,6 +75,7 @@ export interface AssetCategory {
   icon: string;
   description: string;
   standardPrefix: string;
+  environments: EnvironmentMode[];
 }
 
 export interface Asset {

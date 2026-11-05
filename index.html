@@ -9,6 +9,18 @@
     <meta property="og:description" content="Know what you own. Know where it is. Know who is responsible. Centralised digital platform to register, classify, locate, allocate, maintain and audit physical assets." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      try {
+        const savedTheme = localStorage.getItem('assettrack_state_v3_theme');
+        const themeMode = ['light', 'dark', 'system'].includes(savedTheme) ? savedTheme : 'system';
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const resolvedTheme = themeMode === 'system' ? (prefersDark ? 'dark' : 'light') : themeMode;
+        document.documentElement.dataset.theme = resolvedTheme;
+        document.documentElement.style.colorScheme = resolvedTheme;
+      } catch {
+        document.documentElement.dataset.theme = 'light';
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

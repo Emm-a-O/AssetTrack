@@ -1,1 +1,111 @@
 @import "tailwindcss";
+
+[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+[data-theme='dark'] body {
+  background-color: #0b1120;
+  color: #e2e8f0;
+}
+
+/* Re-map the app's light Tailwind utility palette so existing screens and modals
+   follow the selected theme without requiring per-view theme conditionals. */
+[data-theme='dark'] .bg-white { background-color: #111827; }
+[data-theme='dark'] .bg-slate-50,
+[data-theme='dark'] [class~='bg-slate-50/60'],
+[data-theme='dark'] [class~='bg-slate-50/70'],
+[data-theme='dark'] [class~='bg-slate-50/80'] { background-color: #172033; }
+[data-theme='dark'] .bg-slate-100,
+[data-theme='dark'] [class~='bg-slate-100/60'],
+[data-theme='dark'] [class~='bg-slate-100/70'] { background-color: #1e293b; }
+[data-theme='dark'] .bg-slate-200 { background-color: #334155; }
+
+[data-theme='dark'] .text-slate-900 { color: #f1f5f9; }
+[data-theme='dark'] .text-slate-800 { color: #e2e8f0; }
+[data-theme='dark'] .text-slate-700,
+[data-theme='dark'] .text-slate-600 { color: #cbd5e1; }
+[data-theme='dark'] .text-slate-500,
+[data-theme='dark'] .text-slate-400 { color: #94a3b8; }
+[data-theme='dark'] .text-slate-300 { color: #cbd5e1; }
+
+[data-theme='dark'] .border-slate-100,
+[data-theme='dark'] .divide-slate-100 > :not(:first-child) { border-color: #273449; }
+[data-theme='dark'] .border-slate-200 { border-color: #334155; }
+[data-theme='dark'] .border-slate-300 { border-color: #475569; }
+
+[data-theme='dark'] [class~='hover:bg-slate-50']:hover { background-color: #1e293b; }
+[data-theme='dark'] [class~='hover:bg-slate-100']:hover { background-color: #334155; }
+[data-theme='dark'] [class~='hover:bg-slate-800/80']:hover { background-color: #334155; }
+[data-theme='dark'] [class~='hover:text-slate-900']:hover { color: #f8fafc; }
+
+[data-theme='dark'] .bg-blue-50,
+[data-theme='dark'] [class~='bg-blue-50/40'],
+[data-theme='dark'] [class~='bg-blue-50/50'],
+[data-theme='dark'] [class~='bg-blue-50/60'],
+[data-theme='dark'] [class~='bg-blue-50/70'],
+[data-theme='dark'] [class~='bg-blue-50/80'] { background-color: #172554; }
+[data-theme='dark'] .bg-blue-100 { background-color: #1e3a8a; }
+[data-theme='dark'] .text-blue-900,
+[data-theme='dark'] .text-blue-800 { color: #bfdbfe; }
+[data-theme='dark'] .text-blue-700,
+[data-theme='dark'] .text-blue-600 { color: #93c5fd; }
+[data-theme='dark'] .border-blue-200 { border-color: #1e40af; }
+
+[data-theme='dark'] .bg-emerald-50 { background-color: #052e2b; }
+[data-theme='dark'] .bg-emerald-100 { background-color: #064e3b; }
+[data-theme='dark'] .text-emerald-900,
+[data-theme='dark'] .text-emerald-800 { color: #a7f3d0; }
+[data-theme='dark'] .text-emerald-700,
+[data-theme='dark'] .text-emerald-600 { color: #6ee7b7; }
+[data-theme='dark'] .border-emerald-100,
+[data-theme='dark'] .border-emerald-200,
+[data-theme='dark'] .border-emerald-300 { border-color: #065f46; }
+
+[data-theme='dark'] .bg-amber-50,
+[data-theme='dark'] [class~='bg-amber-50/70'] { background-color: #451a03; }
+[data-theme='dark'] .bg-amber-100 { background-color: #78350f; }
+[data-theme='dark'] .text-amber-900,
+[data-theme='dark'] .text-amber-800 { color: #fde68a; }
+[data-theme='dark'] .text-amber-700,
+[data-theme='dark'] .text-amber-600 { color: #fcd34d; }
+[data-theme='dark'] .border-amber-200,
+[data-theme='dark'] .border-amber-300 { border-color: #92400e; }
+
+[data-theme='dark'] .bg-rose-50,
+[data-theme='dark'] [class~='bg-rose-50/30'],
+[data-theme='dark'] [class~='bg-rose-50/50'],
+[data-theme='dark'] [class~='bg-rose-50/70'] { background-color: #4c0519; }
+[data-theme='dark'] .bg-rose-100,
+[data-theme='dark'] [class~='bg-rose-100/80'] { background-color: #881337; }
+[data-theme='dark'] .text-rose-900,
+[data-theme='dark'] .text-rose-800 { color: #fecdd3; }
+[data-theme='dark'] .text-rose-700,
+[data-theme='dark'] .text-rose-600,
+[data-theme='dark'] .text-rose-500 { color: #fda4af; }
+[data-theme='dark'] .border-rose-200,
+[data-theme='dark'] .border-rose-300 { border-color: #9f1239; }
+
+[data-theme='dark'] .bg-indigo-50,
+[data-theme='dark'] [class~='bg-indigo-50/70'] { background-color: #1e1b4b; }
+[data-theme='dark'] .bg-indigo-100 { background-color: #312e81; }
+[data-theme='dark'] .text-indigo-900,
+[data-theme='dark'] .text-indigo-800 { color: #c7d2fe; }
+[data-theme='dark'] .text-indigo-700,
+[data-theme='dark'] .text-indigo-600 { color: #a5b4fc; }
+[data-theme='dark'] .border-indigo-100,
+[data-theme='dark'] .border-indigo-200 { border-color: #3730a3; }
+
+[data-theme='dark'] .bg-purple-50 { background-color: #3b0764; }
+[data-theme='dark'] .text-purple-700,
+[data-theme='dark'] .text-purple-600 { color: #d8b4fe; }
+[data-theme='dark'] .bg-teal-50 { background-color: #042f2e; }
+[data-theme='dark'] .text-teal-700 { color: #5eead4; }
+[data-theme='dark'] .bg-yellow-50 { background-color: #422006; }
+[data-theme='dark'] .text-yellow-800 { color: #fde68a; }
+
+[data-theme='dark'] input,
+[data-theme='dark'] textarea,
+[data-theme='dark'] select {
+  color-scheme: dark;
+}

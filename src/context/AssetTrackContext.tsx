@@ -31,9 +31,13 @@ import {
   INITIAL_USERS,
 } from '../data/initialData';
 
+export type ThemeMode = 'light' | 'dark' | 'system';
+
 interface AssetTrackContextType {
   environment: EnvironmentMode;
   setEnvironment: (env: EnvironmentMode) => void;
+  themeMode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
   currentUser: User;
   setCurrentUser: (user: User) => void;
   users: User[];
@@ -113,6 +117,15 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return (saved as EnvironmentMode) || 'organisation';
     } catch {
       return 'organisation';
+    }
+  });
+
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY}_theme`);
+      return saved === 'light' || saved === 'dark' || saved === 'system' ? saved : 'system';
+    } catch {
+      return 'system';
     }
   });
 
@@ -224,8 +237,36 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, [environment, currentUser, assets, movements, locations, departments, assignments, maintenanceRecords, missingReports, auditLogs, notifications]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    const systemPreference = window.matchMedia('(prefers-color-scheme: dark)');
+    const applyTheme = () => {
+      const resolvedTheme = themeMode === 'system'
+        ? (systemPreference.matches ? 'dark' : 'light')
+        : themeMode;
+      root.dataset.theme = resolvedTheme;
+      root.style.colorScheme = resolvedTheme;
+    };
+
+    applyTheme();
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_theme`, themeMode);
+    } catch {
+      // Keep the current session theme if storage is unavailable.
+    }
+
+    if (themeMode === 'system') {
+      systemPreference.addEventListener('change', applyTheme);
+      return () => systemPreference.removeEventListener('change', applyTheme);
+    }
+  }, [themeMode]);
+
   const setEnvironment = (env: EnvironmentMode) => {
     setEnvironmentState(env);
+  };
+
+  const setThemeMode = (mode: ThemeMode) => {
+    setThemeModeState(mode);
   };
 
   const setCurrentUser = (user: User) => {
@@ -1193,6 +1234,8 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       value={{
         environment,
         setEnvironment,
+        themeMode,
+        setThemeMode,
         currentUser,
         setCurrentUser,
         users,

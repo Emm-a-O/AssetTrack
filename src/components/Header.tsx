@@ -15,15 +15,21 @@ import {
   RotateCcw,
   Shield,
   ChevronDown,
+  Sun,
+  Moon,
+  Monitor,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useAssetTrack } from '../context/AssetTrackContext';
-import { UserRole } from '../types';
+import type { EnvironmentMode } from '../types';
+import type { ThemeMode } from '../context/AssetTrackContext';
 
 interface HeaderProps {
   onOpenRegisterModal: () => void;
   onOpenScanModal: () => void;
   onOpenPrintLabelsModal: () => void;
   onSelectTab: (tabId: string) => void;
+  onChangeEnvironment: (environment: EnvironmentMode) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,10 +37,12 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenScanModal,
   onOpenPrintLabelsModal,
   onSelectTab,
+  onChangeEnvironment,
 }) => {
   const {
     environment,
-    setEnvironment,
+    themeMode,
+    setThemeMode,
     currentUser,
     setCurrentUser,
     users,
@@ -92,7 +100,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Environment Toggle */}
             <div className="hidden md:flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs font-medium">
               <button
-                onClick={() => setEnvironment('organisation')}
+                onClick={() => onChangeEnvironment('organisation')}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
                   environment === 'organisation'
                     ? 'bg-white text-blue-700 shadow-xs font-semibold'
@@ -104,7 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>Organisation</span>
               </button>
               <button
-                onClick={() => setEnvironment('household')}
+                onClick={() => onChangeEnvironment('household')}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
                   environment === 'household'
                     ? 'bg-white text-blue-700 shadow-xs font-semibold'
@@ -283,6 +291,34 @@ export const Header: React.FC<HeaderProps> = ({
                         )}
                       </button>
                     ))}
+                  </div>
+
+                  <div className="border-t border-slate-100 px-3 py-2">
+                    <p className="px-1 pb-2 text-xs font-semibold text-slate-900">Appearance</p>
+                    <div className="grid grid-cols-3 gap-1" role="group" aria-label="Color theme">
+                      {([
+                        { mode: 'system', label: 'System', Icon: Monitor },
+                        { mode: 'light', label: 'Light', Icon: Sun },
+                        { mode: 'dark', label: 'Dark', Icon: Moon },
+                      ] as { mode: ThemeMode; label: string; Icon: LucideIcon }[]).map(
+                        ({ mode, label, Icon }) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => setThemeMode(mode)}
+                            aria-pressed={themeMode === mode}
+                            className={`flex flex-col items-center gap-1 rounded-lg px-2 py-2 text-[10px] font-medium transition-colors ${
+                              themeMode === mode
+                                ? 'bg-blue-50 text-blue-700'
+                                : 'text-slate-600 hover:bg-slate-50'
+                            }`}
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span>{label}</span>
+                          </button>
+                        )
+                      )}
+                    </div>
                   </div>
 
                   <div className="border-t border-slate-100 px-3 py-2 mt-1">

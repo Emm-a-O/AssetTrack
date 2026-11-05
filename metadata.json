@@ -1,0 +1,6 @@
+{
+  "name": "AssetTrack",
+  "description": "Know what you own. Know where it is. Know who is responsible. Multi-environment physical asset management and movement tracking system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

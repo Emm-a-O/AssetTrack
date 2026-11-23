@@ -11,6 +11,7 @@ import {
   FileBarChart2,
   FolderTree,
   ShieldAlert,
+  UsersRound,
 } from 'lucide-react';
 import { useAssetTrack } from '../context/AssetTrackContext';
 
@@ -20,7 +21,8 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
-  const { environment, movements, maintenanceRecords, missingReports, assets } = useAssetTrack();
+  const { environment, movements, maintenanceRecords, missingReports, assets, currentUser } = useAssetTrack();
+  const canManageAccounts = currentUser.role === 'Organisation Administrator' || currentUser.role === 'Platform Administrator';
 
   const scopedAssetIds = assets.filter((a) => a.environment === environment).map((a) => a.id);
   const pendingApprovalsCount = movements.filter((m) => m.environment === environment && m.status === 'Pending approval').length;
@@ -43,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
       badge: assets.filter((a) => !a.isArchived && a.environment === environment).length,
       description: 'All registered physical assets',
     },
+    ...(canManageAccounts ? [{ id: 'team', label: environment === 'household' ? 'Household Members' : 'Officials & Team', icon: UsersRound, description: 'Invite and manage individual accounts' }] : []),
     {
       id: 'movements',
       label: 'Asset Movements',

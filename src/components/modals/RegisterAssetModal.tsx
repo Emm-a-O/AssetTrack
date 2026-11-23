@@ -58,6 +58,7 @@ export const RegisterAssetModal: React.FC<RegisterAssetModalProps> = ({
   const [imageUrl, setImageUrl] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -73,7 +74,7 @@ export const RegisterAssetModal: React.FC<RegisterAssetModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -90,33 +91,40 @@ export const RegisterAssetModal: React.FC<RegisterAssetModalProps> = ({
       return;
     }
 
-    const res = registerAsset({
-      name: name.trim(),
-      category,
-      subcategory: subcategory.trim() || undefined,
-      description: description.trim() || undefined,
-      brand: brand.trim() || undefined,
-      model: model.trim() || undefined,
-      serialNumber: serialNumber.trim() || undefined,
-      acquisitionDate: acquisitionDate || undefined,
-      acquisitionCost: acquisitionCost ? parseFloat(acquisitionCost) : undefined,
-      currency,
-      initialLocationId,
-      currentLocationId: initialLocationId,
-      responsiblePersonId: responsiblePersonId || undefined,
-      departmentId: departmentId || undefined,
-      condition,
-      status: 'Active',
-      imageUrl: imageUrl.trim() || undefined,
-      environment,
-      notes: notes.trim() || undefined,
-    });
+    setIsSaving(true);
+    try {
+      const res = await registerAsset({
+        name: name.trim(),
+        category,
+        subcategory: subcategory.trim() || undefined,
+        description: description.trim() || undefined,
+        brand: brand.trim() || undefined,
+        model: model.trim() || undefined,
+        serialNumber: serialNumber.trim() || undefined,
+        acquisitionDate: acquisitionDate || undefined,
+        acquisitionCost: acquisitionCost ? parseFloat(acquisitionCost) : undefined,
+        currency,
+        initialLocationId,
+        currentLocationId: initialLocationId,
+        responsiblePersonId: responsiblePersonId || undefined,
+        departmentId: departmentId || undefined,
+        condition,
+        status: 'Active',
+        imageUrl: imageUrl.trim() || undefined,
+        environment,
+        notes: notes.trim() || undefined,
+      });
 
-    if (res.success && res.asset) {
-      if (onAssetCreated) onAssetCreated(res.asset.id);
-      onClose();
-    } else {
-      setError(res.error || 'Failed to register asset.');
+      if (res.success && res.asset) {
+        if (onAssetCreated) onAssetCreated(res.asset.id);
+        onClose();
+      } else {
+        setError(res.error || 'Failed to register asset.');
+      }
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Failed to register asset.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -425,10 +433,11 @@ export const RegisterAssetModal: React.FC<RegisterAssetModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-xs shadow-blue-500/20 transition-all flex items-center gap-1.5"
+              disabled={isSaving}
+              className="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-xs shadow-blue-500/20 transition-all flex items-center gap-1.5 disabled:opacity-60"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>Confirm &amp; Generate Asset ID</span>
+              <span>{isSaving ? 'Saving asset…' : 'Confirm & Generate Asset ID'}</span>
             </button>
           </div>
         </form>

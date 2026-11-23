@@ -195,7 +195,7 @@ Wireless Lapel Microphone Kit,Audio-Visual,ICT-302,Rode,Wireless PRO,SN-ROD-9102
     }
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (previewRows.length === 0) {
       setError('No valid rows found to import.');
       return;
@@ -210,7 +210,7 @@ Wireless Lapel Microphone Kit,Audio-Visual,ICT-302,Rode,Wireless PRO,SN-ROD-9102
         defaultLoc;
 
       if (matchLoc) {
-        const res = registerAsset({
+        const res = await registerAsset({
           name: row.name,
           category: row.category,
           initialLocationId: matchLoc.id,

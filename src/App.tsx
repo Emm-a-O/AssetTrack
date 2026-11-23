@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AssetTrackProvider, useAssetTrack } from './context/AssetTrackContext';
+import { useAssetTrack } from './context/AssetTrackContext';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { DashboardView } from './components/views/DashboardView';
@@ -12,6 +12,8 @@ import { AllocationView } from './components/views/AllocationView';
 import { MissingAssetsView } from './components/views/MissingAssetsView';
 import { ReportsView } from './components/views/ReportsView';
 import { StructureView } from './components/views/StructureView';
+import { TeamManagementView } from './components/views/TeamManagementView';
+import { AuthGate } from './components/AuthGate';
 
 import { RegisterAssetModal } from './components/modals/RegisterAssetModal';
 import { AssetDetailModal } from './components/modals/AssetDetailModal';
@@ -33,10 +35,11 @@ import {
   QrCode,
   Building2,
   Home,
+  UsersRound,
 } from 'lucide-react';
 
-const MainLayout: React.FC = () => {
-  const { environment, setEnvironment } = useAssetTrack();
+const MainLayout: React.FC<{ onSignOut: () => Promise<void> }> = ({ onSignOut }) => {
+  const { environment, setEnvironment, currentUser, assetsLoading, assetsError } = useAssetTrack();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const changeEnvironment = (nextEnvironment: 'organisation' | 'household') => {
@@ -63,6 +66,13 @@ const MainLayout: React.FC = () => {
   const [completeMaintenanceId, setCompleteMaintenanceId] = useState<string | null>(null);
 
   const [assignAssetId, setAssignAssetId] = useState<string | null>(null);
+
+  if (assetsLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-100 text-sm font-medium text-slate-600">Loading shared asset register…</div>;
+  }
+  if (assetsError) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-100 p-5"><div className="max-w-lg rounded-xl border border-rose-200 bg-white p-6 text-sm text-rose-700"><h1 className="font-bold">Shared asset register unavailable</h1><p className="mt-2">{assetsError}</p><p className="mt-2 text-xs text-slate-500">Check that the latest Supabase migration has been run and try reloading.</p></div></div>;
+  }
 
   // Helper openers
   const openMovementForAsset = (assetId?: string) => {
@@ -91,6 +101,7 @@ const MainLayout: React.FC = () => {
         onOpenPrintLabelsModal={() => setIsPrintLabelsOpen(true)}
         onSelectTab={setActiveTab}
         onChangeEnvironment={changeEnvironment}
+        onSignOut={onSignOut}
       />
 
       <div className="flex flex-1">
@@ -147,6 +158,8 @@ const MainLayout: React.FC = () => {
               onInitiateReassignment={(id) => openAssignForAsset(id)}
             />
           )}
+
+          {activeTab === 'team' && (currentUser.role === 'Organisation Administrator' || currentUser.role === 'Platform Administrator') && <TeamManagementView />}
 
           {activeTab === 'movements' && (
             <MovementsView
@@ -216,6 +229,16 @@ const MainLayout: React.FC = () => {
           <Boxes className="w-4 h-4" />
           <span>Register</span>
         </button>
+
+        {(currentUser.role === 'Organisation Administrator' || currentUser.role === 'Platform Administrator') && (
+          <button
+            onClick={() => setActiveTab('team')}
+            className={`flex flex-col items-center py-1 px-2 text-[10px] font-semibold transition-colors ${activeTab === 'team' ? 'text-blue-600' : 'text-slate-500'}`}
+          >
+            <UsersRound className="w-4 h-4" />
+            <span>Team</span>
+          </button>
+        )}
 
         <button
           onClick={() => setIsScanOpen(true)}
@@ -324,8 +347,8 @@ const MainLayout: React.FC = () => {
 
 export default function App() {
   return (
-    <AssetTrackProvider>
-      <MainLayout />
-    </AssetTrackProvider>
+    <AuthGate>
+      {(_user, signOut) => <MainLayout onSignOut={signOut} />}
+    </AuthGate>
   );
 }

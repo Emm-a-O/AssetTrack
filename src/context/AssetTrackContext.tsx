@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import {
   Asset,
   Location,
@@ -12,13 +12,11 @@ import {
   NotificationItem,
   User,
   EnvironmentMode,
-  UserRole,
   AssetCondition,
   OperationalStatus,
   MovementReason,
 } from '../types';
 import {
-  INITIAL_ASSETS,
   INITIAL_LOCATIONS,
   INITIAL_DEPARTMENTS,
   INITIAL_CATEGORIES,
@@ -28,8 +26,8 @@ import {
   INITIAL_MISSING_REPORTS,
   INITIAL_AUDIT_LOGS,
   INITIAL_NOTIFICATIONS,
-  INITIAL_USERS,
 } from '../data/initialData';
+import { mapProfileToUser, supabase } from '../lib/supabase';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -39,8 +37,9 @@ interface AssetTrackContextType {
   themeMode: ThemeMode;
   setThemeMode: (mode: ThemeMode) => void;
   currentUser: User;
-  setCurrentUser: (user: User) => void;
   users: User[];
+  refreshUsers: () => Promise<void>;
+  inviteUser: (user: Omit<User, 'id'>) => Promise<{ success: boolean; error?: string }>;
   departments: Department[];
   categories: AssetCategory[];
   locations: Location[];
@@ -52,9 +51,11 @@ interface AssetTrackContextType {
   auditLogs: AuditLog[];
   notifications: NotificationItem[];
   unreadNotificationsCount: number;
+  assetsLoading: boolean;
+  assetsError: string | null;
 
   // Asset Actions
-  registerAsset: (asset: Omit<Asset, 'id' | 'createdAt' | 'lastConfirmedMovementDate' | 'lastConfirmedMovementTime' | 'isArchived' | 'registeredBy'>) => { success: boolean; asset?: Asset; error?: string };
+  registerAsset: (asset: Omit<Asset, 'id' | 'createdAt' | 'lastConfirmedMovementDate' | 'lastConfirmedMovementTime' | 'isArchived' | 'registeredBy'>) => Promise<{ success: boolean; asset?: Asset; error?: string }>;
   updateAsset: (id: string, updates: Partial<Asset>) => { success: boolean; error?: string };
   archiveAsset: (id: string) => { success: boolean; error?: string };
   restoreAsset: (id: string) => { success: boolean; error?: string };
@@ -101,7 +102,6 @@ interface AssetTrackContextType {
   getLocationHierarchyName: (id: string) => string;
   getDepartmentName: (id?: string) => string;
   getUserName: (id?: string) => string;
-  resetAllDemoData: () => void;
   generateNextAssetId: (env: EnvironmentMode) => string;
 }
 
@@ -109,7 +109,7 @@ const STORAGE_KEY = 'assettrack_state_v3';
 
 const AssetTrackContext = createContext<AssetTrackContextType | undefined>(undefined);
 
-export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AssetTrackProvider: React.FC<{ children: React.ReactNode; currentUser: User }> = ({ children, currentUser }) => {
   // Load initial from localStorage if available
   const [environment, setEnvironmentState] = useState<EnvironmentMode>(() => {
     try {
@@ -129,17 +129,7 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   });
 
-  const [currentUser, setCurrentUserState] = useState<User>(() => {
-    try {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_user`);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // ignore
-    }
-    return INITIAL_USERS[0]; // Sarah Adebayo (Asset Manager)
-  });
-
-  const [users, setUsers] = useState<User[]>(INITIAL_USERS);
+  const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_departments`);
@@ -162,13 +152,12 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return INITIAL_LOCATIONS;
   });
 
-  const [assets, setAssets] = useState<Asset[]>(() => {
-    try {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_assets`);
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return INITIAL_ASSETS;
-  });
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [assetsLoading, setAssetsLoading] = useState(true);
+  const [assetsError, setAssetsError] = useState<string | null>(null);
+  const assetsLoaded = useRef(false);
+  const syncedAssetData = useRef<Record<string, string>>({});
+  const assetOwnerIds = useRef<Record<string, string>>({});
 
   const [movements, setMovements] = useState<AssetMovement[]>(() => {
     try {
@@ -222,8 +211,6 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     try {
       localStorage.setItem(`${STORAGE_KEY}_env`, environment);
-      localStorage.setItem(`${STORAGE_KEY}_user`, JSON.stringify(currentUser));
-      localStorage.setItem(`${STORAGE_KEY}_assets`, JSON.stringify(assets));
       localStorage.setItem(`${STORAGE_KEY}_movements`, JSON.stringify(movements));
       localStorage.setItem(`${STORAGE_KEY}_locations`, JSON.stringify(locations));
       localStorage.setItem(`${STORAGE_KEY}_departments`, JSON.stringify(departments));
@@ -235,7 +222,7 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } catch (e) {
       console.warn('LocalStorage save failed:', e);
     }
-  }, [environment, currentUser, assets, movements, locations, departments, assignments, maintenanceRecords, missingReports, auditLogs, notifications]);
+  }, [environment, movements, locations, departments, assignments, maintenanceRecords, missingReports, auditLogs, notifications]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -269,9 +256,100 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setThemeModeState(mode);
   };
 
-  const setCurrentUser = (user: User) => {
-    setCurrentUserState(user);
+  const refreshUsers = async () => {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id,email,full_name,role,title,department_id,avatar')
+      .order('full_name');
+    if (error) throw error;
+    setUsers((data || []).map(mapProfileToUser));
   };
+
+  useEffect(() => {
+    let active = true;
+    const loadUsers = async () => {
+      try {
+        await refreshUsers();
+      } catch (error) {
+        if (active) console.error('Unable to load AssetTrack members:', error);
+      }
+    };
+    void loadUsers();
+    const timer = window.setInterval(() => { void loadUsers(); }, 15000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [currentUser.id]);
+
+  const inviteUser = async (user: Omit<User, 'id'>) => {
+    if (!supabase) return { success: false, error: 'Supabase is not configured.' };
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return { success: false, error: 'Please sign in again and retry.' };
+    try {
+      const response = await fetch('/api/invite-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(user),
+      });
+      const result = await response.json();
+      if (!response.ok) return { success: false, error: result.error || 'Invitation could not be sent.' };
+      await refreshUsers();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Invitation could not be sent.' };
+    }
+  };
+
+  const loadSharedAssets = async () => {
+    if (!supabase) return;
+    const { data, error } = await supabase
+      .from('asset_records')
+      .select('asset_id,environment,data,created_by')
+      .order('updated_at', { ascending: false });
+    if (error) {
+      setAssetsError(error.message);
+      setAssetsLoading(false);
+      return;
+    }
+    const loadedAssets = (data || []).map((row) => row.data as Asset);
+    assetOwnerIds.current = Object.fromEntries((data || []).map((row) => [row.asset_id, row.created_by]));
+    syncedAssetData.current = Object.fromEntries(loadedAssets.map((asset) => [asset.id, JSON.stringify(asset)]));
+    assetsLoaded.current = true;
+    setAssets(loadedAssets);
+    setAssetsError(null);
+    setAssetsLoading(false);
+  };
+
+  useEffect(() => {
+    void loadSharedAssets();
+    const timer = window.setInterval(() => { void loadSharedAssets(); }, 10000);
+    return () => window.clearInterval(timer);
+  }, [currentUser.id]);
+
+  useEffect(() => {
+    if (!assetsLoaded.current || !supabase) return;
+    const changedAssets = assets.filter((asset) => syncedAssetData.current[asset.id] !== JSON.stringify(asset));
+    if (!changedAssets.length) return;
+    for (const asset of changedAssets) syncedAssetData.current[asset.id] = JSON.stringify(asset);
+    void (async () => {
+      for (const asset of changedAssets) {
+        const { error } = await supabase!
+          .from('asset_records')
+          .upsert({ asset_id: asset.id, environment: asset.environment, data: asset, created_by: assetOwnerIds.current[asset.id] || currentUser.id, updated_at: new Date().toISOString() }, { onConflict: 'asset_id' });
+        if (error) {
+          delete syncedAssetData.current[asset.id];
+          setAssetsError(`Could not save ${asset.id}: ${error.message}`);
+        } else {
+          setAssetsError(null);
+        }
+      }
+    })();
+  }, [assets, currentUser.id]);
 
   // Helper log generator
   const logAudit = (action: string, entityType: AuditLog['entityType'], entityId: string, details: string) => {
@@ -335,7 +413,7 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // 1. Asset Registration
-  const registerAsset = (
+  const registerAsset = async (
     assetData: Omit<Asset, 'id' | 'createdAt' | 'lastConfirmedMovementDate' | 'lastConfirmedMovementTime' | 'isArchived' | 'registeredBy'>
   ) => {
     if (!assetData.name.trim()) {
@@ -348,7 +426,9 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return { success: false, error: 'Initial Location is mandatory.' };
     }
 
-    const newId = generateNextAssetId(assetData.environment);
+    if (!supabase) return { success: false, error: 'Supabase is not configured.' };
+    const { data: newId, error: idError } = await supabase.rpc('next_asset_id', { p_environment: assetData.environment });
+    if (idError || !newId) return { success: false, error: idError?.message || 'Could not allocate an asset ID.' };
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
     const timeStr = now.toTimeString().slice(0, 5);
@@ -364,7 +444,13 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       registeredBy: currentUser.name,
     };
 
-    setAssets((prev) => [newAsset, ...prev]);
+    const { error: insertError } = await supabase
+      .from('asset_records')
+      .insert({ asset_id: newId, environment: newAsset.environment, data: newAsset, created_by: currentUser.id });
+    if (insertError) return { success: false, error: insertError.message };
+    assetOwnerIds.current[newId] = currentUser.id;
+    syncedAssetData.current[newId] = JSON.stringify(newAsset);
+    setAssets((prev) => [newAsset, ...prev.filter((asset) => asset.id !== newId)]);
 
     // Initial assignment if specified
     if (assetData.responsiblePersonId) {
@@ -1202,31 +1288,6 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return user ? user.name : id;
   };
 
-  const resetAllDemoData = () => {
-    setAssets(INITIAL_ASSETS);
-    setLocations(INITIAL_LOCATIONS);
-    setDepartments(INITIAL_DEPARTMENTS);
-    setMovements(INITIAL_MOVEMENTS);
-    setAssignments(INITIAL_ASSIGNMENTS);
-    setMaintenanceRecords(INITIAL_MAINTENANCE);
-    setMissingReports(INITIAL_MISSING_REPORTS);
-    setAuditLogs(INITIAL_AUDIT_LOGS);
-    setNotifications(INITIAL_NOTIFICATIONS);
-    setCurrentUserState(INITIAL_USERS[0]);
-    setEnvironmentState('organisation');
-    try {
-      localStorage.removeItem(`${STORAGE_KEY}_assets`);
-      localStorage.removeItem(`${STORAGE_KEY}_movements`);
-      localStorage.removeItem(`${STORAGE_KEY}_locations`);
-      localStorage.removeItem(`${STORAGE_KEY}_departments`);
-      localStorage.removeItem(`${STORAGE_KEY}_assignments`);
-      localStorage.removeItem(`${STORAGE_KEY}_maintenance`);
-      localStorage.removeItem(`${STORAGE_KEY}_missing`);
-      localStorage.removeItem(`${STORAGE_KEY}_audit`);
-      localStorage.removeItem(`${STORAGE_KEY}_notifs`);
-    } catch {}
-  };
-
   const unreadNotificationsCount = notifications.filter((n) => !n.isRead).length;
 
   return (
@@ -1237,8 +1298,9 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         themeMode,
         setThemeMode,
         currentUser,
-        setCurrentUser,
         users,
+        refreshUsers,
+        inviteUser,
         departments,
         categories,
         locations,
@@ -1250,6 +1312,8 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         auditLogs,
         notifications,
         unreadNotificationsCount,
+        assetsLoading,
+        assetsError,
 
         registerAsset,
         updateAsset,
@@ -1283,7 +1347,6 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         getLocationHierarchyName,
         getDepartmentName,
         getUserName,
-        resetAllDemoData,
         generateNextAssetId,
       }}
     >

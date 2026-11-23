@@ -7,17 +7,15 @@ import {
   PlusCircle,
   Building2,
   Home,
-  UserCheck,
   CheckCircle2,
   AlertTriangle,
   Wrench,
   Clock,
-  RotateCcw,
-  Shield,
   ChevronDown,
   Sun,
   Moon,
   Monitor,
+  LogOut,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAssetTrack } from '../context/AssetTrackContext';
@@ -30,6 +28,7 @@ interface HeaderProps {
   onOpenPrintLabelsModal: () => void;
   onSelectTab: (tabId: string) => void;
   onChangeEnvironment: (environment: EnvironmentMode) => void;
+  onSignOut: () => Promise<void>;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -38,19 +37,17 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenPrintLabelsModal,
   onSelectTab,
   onChangeEnvironment,
+  onSignOut,
 }) => {
   const {
     environment,
     themeMode,
     setThemeMode,
     currentUser,
-    setCurrentUser,
-    users,
     notifications,
     unreadNotificationsCount,
     markNotificationRead,
     markAllNotificationsRead,
-    resetAllDemoData,
   } = useAssetTrack();
 
   const [showNotifications, setShowNotifications] = useState(false);
@@ -240,7 +237,7 @@ export const Header: React.FC<HeaderProps> = ({
                   setShowNotifications(false);
                 }}
                 className="flex items-center gap-2 p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors text-left"
-                title="Switch active user role to test permissions"
+                title="Account menu"
               >
                 <img
                   src={currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
@@ -260,38 +257,10 @@ export const Header: React.FC<HeaderProps> = ({
 
               {showUserMenu && (
                 <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50">
-                  <div className="px-4 py-2 border-b border-slate-100">
-                    <p className="text-xs font-semibold text-slate-900">Switch User Role</p>
-                    <p className="text-[11px] text-slate-500">
-                      Test multi-user permissions (Approvals, audits, custodian view)
-                    </p>
-                  </div>
-                  <div className="py-1">
-                    {users.map((u) => (
-                      <button
-                        key={u.id}
-                        onClick={() => {
-                          setCurrentUser(u);
-                          setShowUserMenu(false);
-                        }}
-                        className={`w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-slate-50 transition-colors ${
-                          u.id === currentUser.id ? 'bg-blue-50/60 font-semibold' : ''
-                        }`}
-                      >
-                        <img
-                          src={u.avatar}
-                          alt={u.name}
-                          className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-300"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-slate-900 truncate">{u.name}</p>
-                          <p className="text-[10px] text-slate-500">{u.role} • {u.title}</p>
-                        </div>
-                        {u.id === currentUser.id && (
-                          <UserCheck className="w-4 h-4 text-blue-600 shrink-0" />
-                        )}
-                      </button>
-                    ))}
+                  <div className="px-4 py-3 border-b border-slate-100">
+                    <p className="text-xs font-semibold text-slate-900">Signed in as</p>
+                    <p className="mt-1 text-[11px] text-slate-600 truncate">{currentUser.email}</p>
+                    <p className="mt-0.5 text-[10px] text-blue-600 font-medium">{currentUser.role}</p>
                   </div>
 
                   <div className="border-t border-slate-100 px-3 py-2">
@@ -324,16 +293,11 @@ export const Header: React.FC<HeaderProps> = ({
 
                   <div className="border-t border-slate-100 px-3 py-2 mt-1">
                     <button
-                      onClick={() => {
-                        if (confirm('Reset all demo data back to initial audit state?')) {
-                          resetAllDemoData();
-                          setShowUserMenu(false);
-                        }
-                      }}
+                      onClick={() => { setShowUserMenu(false); void onSignOut(); }}
                       className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-lg font-medium transition-colors"
                     >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Reset Demo Dataset</span>
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Sign out</span>
                     </button>
                   </div>
                 </div>

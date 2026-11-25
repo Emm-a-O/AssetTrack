@@ -24,7 +24,6 @@ import {
   INITIAL_ASSIGNMENTS,
   INITIAL_MAINTENANCE,
   INITIAL_MISSING_REPORTS,
-  INITIAL_AUDIT_LOGS,
   INITIAL_NOTIFICATIONS,
 } from '../data/initialData';
 import { mapProfileToUser, supabase } from '../lib/supabase';
@@ -40,6 +39,8 @@ interface AssetTrackContextType {
   users: User[];
   refreshUsers: () => Promise<void>;
   inviteUser: (user: Omit<User, 'id'>) => Promise<{ success: boolean; error?: string }>;
+  updateUserPortal: (userId: string, portal: EnvironmentMode) => Promise<{ success: boolean; error?: string }>;
+  updateProfile: (updates: Pick<User, 'name' | 'phone' | 'title' | 'avatar'>) => Promise<{ success: boolean; error?: string }>;
   departments: Department[];
   categories: AssetCategory[];
   locations: Location[];
@@ -109,16 +110,12 @@ const STORAGE_KEY = 'assettrack_state_v3';
 
 const AssetTrackContext = createContext<AssetTrackContextType | undefined>(undefined);
 
-export const AssetTrackProvider: React.FC<{ children: React.ReactNode; currentUser: User }> = ({ children, currentUser }) => {
-  // Load initial from localStorage if available
-  const [environment, setEnvironmentState] = useState<EnvironmentMode>(() => {
-    try {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_env`);
-      return (saved as EnvironmentMode) || 'organisation';
-    } catch {
-      return 'organisation';
-    }
-  });
+export const AssetTrackProvider: React.FC<{
+  children: React.ReactNode;
+  currentUser: User;
+  onProfileUpdated: (user: User) => void;
+}> = ({ children, currentUser, onProfileUpdated }) => {
+  const [environment, setEnvironmentState] = useState<EnvironmentMode>(currentUser.portal);
 
   const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
     try {
@@ -193,10 +190,16 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode; currentUs
 
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
     try {
+      const resetMarker = `${STORAGE_KEY}_audit_reset_20261125`;
+      if (localStorage.getItem(resetMarker) !== 'done') {
+        localStorage.removeItem(`${STORAGE_KEY}_audit`);
+        localStorage.setItem(resetMarker, 'done');
+        return [];
+      }
       const saved = localStorage.getItem(`${STORAGE_KEY}_audit`);
       if (saved) return JSON.parse(saved);
     } catch {}
-    return INITIAL_AUDIT_LOGS;
+    return [];
   });
 
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
@@ -210,7 +213,6 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode; currentUs
   // Save to localStorage when state changes
   useEffect(() => {
     try {
-      localStorage.setItem(`${STORAGE_KEY}_env`, environment);
       localStorage.setItem(`${STORAGE_KEY}_movements`, JSON.stringify(movements));
       localStorage.setItem(`${STORAGE_KEY}_locations`, JSON.stringify(locations));
       localStorage.setItem(`${STORAGE_KEY}_departments`, JSON.stringify(departments));
@@ -249,7 +251,7 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode; currentUs
   }, [themeMode]);
 
   const setEnvironment = (env: EnvironmentMode) => {
-    setEnvironmentState(env);
+    if (env === currentUser.portal) setEnvironmentState(env);
   };
 
   const setThemeMode = (mode: ThemeMode) => {
@@ -260,7 +262,7 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode; currentUs
     if (!supabase) return;
     const { data, error } = await supabase
       .from('profiles')
-      .select('id,email,full_name,role,title,department_id,avatar')
+      .select('id,email,full_name,role,title,department_id,avatar,phone,portal')
       .order('full_name');
     if (error) throw error;
     setUsers((data || []).map(mapProfileToUser));
@@ -303,6 +305,48 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode; currentUs
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Invitation could not be sent.' };
     }
+  };
+
+  const updateUserPortal = async (userId: string, portal: EnvironmentMode) => {
+    if (!supabase) return { success: false, error: 'Supabase is not configured.' };
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return { success: false, error: 'Please sign in again and retry.' };
+    try {
+      const response = await fetch('/api/update-user-portal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ userId, portal }),
+      });
+      const result = await response.json();
+      if (!response.ok) return { success: false, error: result.error || 'The portal assignment could not be updated.' };
+      await refreshUsers();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'The portal assignment could not be updated.' };
+    }
+  };
+
+  const updateProfile = async (updates: Pick<User, 'name' | 'phone' | 'title' | 'avatar'>) => {
+    if (!supabase) return { success: false, error: 'Supabase is not configured.' };
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: updates.name.trim(),
+        phone: updates.phone?.trim() || null,
+        title: updates.title?.trim() || null,
+        avatar: updates.avatar?.trim() || null,
+      })
+      .eq('id', currentUser.id)
+      .select('id,email,full_name,role,title,department_id,avatar,phone,portal')
+      .single();
+    if (error || !data) return { success: false, error: error?.message || 'Profile could not be saved.' };
+    const updatedUser = mapProfileToUser(data);
+    onProfileUpdated(updatedUser);
+    setUsers((previous) => previous.map((user) => user.id === updatedUser.id ? updatedUser : user));
+    return { success: true };
   };
 
   const loadSharedAssets = async () => {
@@ -1301,6 +1345,8 @@ export const AssetTrackProvider: React.FC<{ children: React.ReactNode; currentUs
         users,
         refreshUsers,
         inviteUser,
+        updateUserPortal,
+        updateProfile,
         departments,
         categories,
         locations,

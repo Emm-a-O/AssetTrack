@@ -36,10 +36,14 @@ export default async function handler(req: Request, res: Response) {
   const name = typeof body?.name === 'string' ? body.name.trim() : '';
   const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '';
   const role = typeof body?.role === 'string' ? body.role : '';
+  const portal = body?.portal === 'household' ? 'household' : body?.portal === 'organisation' ? 'organisation' : '';
   const title = typeof body?.title === 'string' ? body.title.trim() : '';
   const departmentId = typeof body?.departmentId === 'string' ? body.departmentId : '';
-  if (name.length < 2 || !/^\S+@\S+\.\S+$/.test(email) || !allowedRoles.includes(role as UserRole)) {
-    return res.status(400).json({ error: 'Enter a name, valid email, and permitted role.' });
+  if (name.length < 2 || !/^\S+@\S+\.\S+$/.test(email) || !allowedRoles.includes(role as UserRole) || !portal) {
+    return res.status(400).json({ error: 'Enter a name, valid email, portal, and permitted role.' });
+  }
+  if (portal === 'household' && role !== 'Staff Member') {
+    return res.status(400).json({ error: 'Household accounts must use the Staff Member role.' });
   }
 
   const admin = createClient(supabaseUrl, secretKey, {
@@ -65,6 +69,7 @@ export default async function handler(req: Request, res: Response) {
       full_name: name,
       title: title || null,
       department_id: departmentId || null,
+      portal,
     },
   });
   if (inviteError || !invitation.user) {
@@ -77,6 +82,7 @@ export default async function handler(req: Request, res: Response) {
       email,
       full_name: name,
       role,
+      portal,
       title: title || null,
       department_id: departmentId || null,
     })

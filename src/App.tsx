@@ -13,6 +13,7 @@ import { MissingAssetsView } from './components/views/MissingAssetsView';
 import { ReportsView } from './components/views/ReportsView';
 import { StructureView } from './components/views/StructureView';
 import { TeamManagementView } from './components/views/TeamManagementView';
+import { ProfileView } from './components/views/ProfileView';
 import { AuthGate } from './components/AuthGate';
 
 import { RegisterAssetModal } from './components/modals/RegisterAssetModal';
@@ -33,21 +34,12 @@ import {
   ArrowLeftRight,
   MapPin,
   QrCode,
-  Building2,
-  Home,
   UsersRound,
 } from 'lucide-react';
 
 const MainLayout: React.FC<{ onSignOut: () => Promise<void> }> = ({ onSignOut }) => {
-  const { environment, setEnvironment, currentUser, assetsLoading, assetsError } = useAssetTrack();
+  const { environment, currentUser, assetsLoading, assetsError } = useAssetTrack();
   const [activeTab, setActiveTab] = useState('dashboard');
-
-  const changeEnvironment = (nextEnvironment: 'organisation' | 'household') => {
-    setEnvironment(nextEnvironment);
-    if (nextEnvironment === 'household' && (activeTab === 'allocation' || activeTab === 'structure')) {
-      setActiveTab('dashboard');
-    }
-  };
 
   // Modal States
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
@@ -100,7 +92,6 @@ const MainLayout: React.FC<{ onSignOut: () => Promise<void> }> = ({ onSignOut })
         onOpenScanModal={() => setIsScanOpen(true)}
         onOpenPrintLabelsModal={() => setIsPrintLabelsOpen(true)}
         onSelectTab={setActiveTab}
-        onChangeEnvironment={changeEnvironment}
         onSignOut={onSignOut}
       />
 
@@ -110,35 +101,6 @@ const MainLayout: React.FC<{ onSignOut: () => Promise<void> }> = ({ onSignOut })
 
         {/* Main Workspace Canvas */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full pb-20 md:pb-8">
-          <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-white p-1 md:hidden">
-            <button
-              type="button"
-              onClick={() => changeEnvironment('organisation')}
-              aria-pressed={environment === 'organisation'}
-              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-semibold transition-colors ${
-                environment === 'organisation'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <Building2 className="h-4 w-4" />
-              Organisation
-            </button>
-            <button
-              type="button"
-              onClick={() => changeEnvironment('household')}
-              aria-pressed={environment === 'household'}
-              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-semibold transition-colors ${
-                environment === 'household'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <Home className="h-4 w-4" />
-              Household
-            </button>
-          </div>
-
           {activeTab === 'dashboard' && (
             <DashboardView
               onOpenRegisterModal={() => setIsRegisterOpen(true)}
@@ -160,6 +122,7 @@ const MainLayout: React.FC<{ onSignOut: () => Promise<void> }> = ({ onSignOut })
           )}
 
           {activeTab === 'team' && (currentUser.role === 'Organisation Administrator' || currentUser.role === 'Platform Administrator') && <TeamManagementView />}
+          {activeTab === 'profile' && <ProfileView />}
 
           {activeTab === 'movements' && (
             <MovementsView

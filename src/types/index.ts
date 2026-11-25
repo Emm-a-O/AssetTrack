@@ -45,9 +45,11 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  portal: EnvironmentMode;
   departmentId?: string;
   title?: string;
   avatar?: string;
+  phone?: string;
 }
 
 export interface Location {

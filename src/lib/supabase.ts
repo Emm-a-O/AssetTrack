@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import type { User } from '../types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
@@ -23,7 +24,9 @@ export const mapProfileToUser = (profile: {
   title?: string | null;
   department_id?: string | null;
   avatar?: string | null;
-}) => ({
+  phone?: string | null;
+  portal?: string | null;
+}): User => ({
   id: profile.id,
   email: profile.email,
   name: profile.full_name || profile.email,
@@ -31,4 +34,6 @@ export const mapProfileToUser = (profile: {
   title: profile.title || undefined,
   departmentId: profile.department_id || undefined,
   avatar: profile.avatar || undefined,
+  phone: profile.phone || undefined,
+  portal: profile.portal === 'household' ? 'household' : 'organisation',
 });

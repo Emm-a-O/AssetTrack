@@ -110,7 +110,7 @@ export const HistoryAndAuditView: React.FC<HistoryAndAuditViewProps> = ({ onSele
       <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 flex items-start gap-2.5">
         <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
         <div>
-          <span className="font-bold">Specification Guidance (Module 4):</span> A system audit log should not be confused with physical movement history. Physical moves document relocation transactions, whereas audit trails log system operations (edits, approvals, archives, permission changes). Neither may be directly overwritten.
+          <span className="font-bold">Log status:</span> The System Audit Trail has been cleared as requested. New system activity will appear here; physical movement history remains available in the first tab.
         </div>
       </div>
 

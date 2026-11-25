@@ -5,8 +5,6 @@ import {
   QrCode,
   Printer,
   PlusCircle,
-  Building2,
-  Home,
   CheckCircle2,
   AlertTriangle,
   Wrench,
@@ -19,7 +17,6 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAssetTrack } from '../context/AssetTrackContext';
-import type { EnvironmentMode } from '../types';
 import type { ThemeMode } from '../context/AssetTrackContext';
 
 interface HeaderProps {
@@ -27,7 +24,6 @@ interface HeaderProps {
   onOpenScanModal: () => void;
   onOpenPrintLabelsModal: () => void;
   onSelectTab: (tabId: string) => void;
-  onChangeEnvironment: (environment: EnvironmentMode) => void;
   onSignOut: () => Promise<void>;
 }
 
@@ -36,7 +32,6 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenScanModal,
   onOpenPrintLabelsModal,
   onSelectTab,
-  onChangeEnvironment,
   onSignOut,
 }) => {
   const {
@@ -82,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="text-xl font-bold tracking-tight text-slate-900">
                   Asset<span className="text-blue-600">Track</span>
                 </span>
-                <span className="hidden md:inline-flex text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                <span className="inline-flex text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                   {environment === 'organisation' ? 'Organisation' : 'Household'}
                 </span>
               </div>
@@ -94,34 +89,6 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Action Controls */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Environment Toggle */}
-            <div className="hidden md:flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs font-medium">
-              <button
-                onClick={() => onChangeEnvironment('organisation')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
-                  environment === 'organisation'
-                    ? 'bg-white text-blue-700 shadow-xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Advanced organisation features (departments, approvals, staff roles)"
-              >
-                <Building2 className="w-3.5 h-3.5" />
-                <span>Organisation</span>
-              </button>
-              <button
-                onClick={() => onChangeEnvironment('household')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
-                  environment === 'household'
-                    ? 'bg-white text-blue-700 shadow-xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Simplified personal possession tracking"
-              >
-                <Home className="w-3.5 h-3.5" />
-                <span>Household</span>
-              </button>
-            </div>
-
             {/* Quick Actions */}
             <button
               onClick={onOpenScanModal}
@@ -261,6 +228,13 @@ export const Header: React.FC<HeaderProps> = ({
                     <p className="text-xs font-semibold text-slate-900">Signed in as</p>
                     <p className="mt-1 text-[11px] text-slate-600 truncate">{currentUser.email}</p>
                     <p className="mt-0.5 text-[10px] text-blue-600 font-medium">{currentUser.role}</p>
+                  </div>
+
+                  <div className="border-t border-slate-100 px-3 py-2">
+                    <button
+                      onClick={() => { setShowUserMenu(false); onSelectTab('profile'); }}
+                      className="w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
+                    >Edit profile</button>
                   </div>
 
                   <div className="border-t border-slate-100 px-3 py-2">

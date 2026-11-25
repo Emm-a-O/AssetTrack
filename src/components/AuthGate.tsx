@@ -197,7 +197,7 @@ export const AuthGate: React.FC<{ children: (user: User, signOut: () => Promise<
     const loadProfile = async () => {
       const { data, error } = await client
         .from('profiles')
-        .select('id,email,full_name,role,title,department_id,avatar')
+        .select('id,email,full_name,role,title,department_id,avatar,phone,portal')
         .eq('id', session.user.id)
         .maybeSingle();
       if (!isMounted) return;
@@ -231,5 +231,5 @@ export const AuthGate: React.FC<{ children: (user: User, signOut: () => Promise<
   }
   if (!profile) return <AuthMessage title="AssetTrack" message="Loading your account…" />;
 
-  return <AssetTrackProvider currentUser={profile}>{children(profile, async () => { await client.auth.signOut(); })}</AssetTrackProvider>;
+  return <AssetTrackProvider currentUser={profile} onProfileUpdated={setProfile}>{children(profile, async () => { await client.auth.signOut(); })}</AssetTrackProvider>;
 };

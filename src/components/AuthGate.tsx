@@ -161,8 +161,11 @@ export const AuthGate: React.FC<{ children: (user: User, signOut: () => Promise<
   const [profile, setProfile] = useState<User | null>(null);
   const [profileError, setProfileError] = useState('');
   const [passwordReady, setPasswordReady] = useState(false);
-  const inviteOrRecovery = new URLSearchParams(window.location.hash.slice(1)).get('type')
-    || (new URLSearchParams(window.location.search).has('code') ? 'invite' : null);
+  const [passwordSetupType, setPasswordSetupType] = useState<'invite' | 'recovery' | null>(() => {
+    const urlType = new URLSearchParams(window.location.hash.slice(1)).get('type');
+    if (urlType === 'invite' || urlType === 'recovery') return urlType;
+    return new URLSearchParams(window.location.search).has('code') ? 'invite' : null;
+  });
 
   useEffect(() => {
     if (!supabase) return;
@@ -172,7 +175,8 @@ export const AuthGate: React.FC<{ children: (user: User, signOut: () => Promise<
       setSession(data.session);
       setInitializing(false);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === 'PASSWORD_RECOVERY') setPasswordSetupType('recovery');
       setSession(nextSession);
       setProfile(null);
       setProfileError('');
@@ -215,7 +219,7 @@ export const AuthGate: React.FC<{ children: (user: User, signOut: () => Promise<
     return <AuthMessage title="AssetTrack" message="Checking your account…" />;
   }
   if (!session) return <SignIn />;
-  if ((inviteOrRecovery === 'invite' || inviteOrRecovery === 'recovery') && !passwordReady) {
+  if (passwordSetupType && !passwordReady) {
     return <InvitePasswordSetup onComplete={() => setPasswordReady(true)} />;
   }
   if (profileError) {

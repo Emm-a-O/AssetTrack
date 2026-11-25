@@ -60,6 +60,7 @@ export default async function handler(req: Request, res: Response) {
   }
 
   const { data: invitation, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: process.env.APP_URL || 'https://asset-track-eight.vercel.app',
     data: {
       full_name: name,
       title: title || null,

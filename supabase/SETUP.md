@@ -22,6 +22,7 @@ AssetTrack uses Supabase Auth for individual sign-ins and a shared database tabl
    - `VITE_SUPABASE_PUBLISHABLE_KEY` = your publishable key
    - `SUPABASE_URL` = your Project URL
    - `SUPABASE_SECRET_KEY` = your Supabase secret key, for server use only
+   - `APP_URL` = `https://asset-track-eight.vercel.app` (used as the invitation link destination)
 
    Never put the secret key in a `VITE_` variable or source code. Do not send the secret key in chat.
 7. Redeploy the Vercel project after saving the environment variables.
